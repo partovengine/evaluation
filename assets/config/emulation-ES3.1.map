@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ptl:map xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ptl="http://partov.ce.sharif.edu/2013/PTL/Map" xsi:schemaLocation="http://partov.ce.sharif.edu/2013/PTL/Map map.xsd" ptl:name="../config/routers" ptl:version="3.1" ptl:count="1">
+	<ptl:nodes>
+		<ptl:plugin ptl:name="pinger" ptl:plugin-identifier="Pinger">
+			<ptl:interfaces>
+				<ptl:physical-ethernet-interface ptl:device-name="enp2s0">
+					<ptl:mac-address>00:0d:29:99:00:01</ptl:mac-address><ptl:ip-address>192.168.42.89</ptl:ip-address>
+					<ptl:netmask>255.255.255.0</ptl:netmask><ptl:max-buffer-size>4000B</ptl:max-buffer-size>
+				</ptl:physical-ethernet-interface>
+			</ptl:interfaces>
+			<ptl:tick-interval>1s</ptl:tick-interval>
+			<ptl:parameters>
+				<ptl:param ptl:name="target-host">
+					<ptl:value>4.2.2.4</ptl:value>
+				</ptl:param>
+				<ptl:param ptl:name="next-hop">
+					<ptl:value>192.168.42.1</ptl:value>
+				</ptl:param>
+				<ptl:param ptl:name="identifier-mode">
+					<ptl:value>incremental</ptl:value>
+				</ptl:param>
+				<ptl:param ptl:name="data-size">
+					<ptl:value>1052</ptl:value>
+				</ptl:param>
+				<ptl:param ptl:name="verbose">
+					<ptl:value>true</ptl:value>
+				</ptl:param>
+			</ptl:parameters>
+		</ptl:plugin>
+	</ptl:nodes>
+</ptl:map>
+

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ptl:map xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ptl="http://partov.ce.sharif.edu/2013/PTL/Map" xsi:schemaLocation="http://partov.ce.sharif.edu/2013/PTL/Map map.xsd" ptl:name="../config/routers" ptl:version="3.1" ptl:count="1">
+  <ptl:links>
+    <ptl:link ptl:name="lk" ptl:protocol="802.3">
+      <ptl:latency>1ms</ptl:latency>
+    </ptl:link>
+  </ptl:links>
+  <ptl:nodes>
+    <ptl:simple ptl:name="dest">
+      <ptl:interfaces>
+        <ptl:ethernet-interface>
+          <ptl:mac-address>00:16:0C:01:03:0A</ptl:mac-address>
+          <ptl:ip-address>192.168.11.10</ptl:ip-address>
+          <ptl:netmask>255.255.255.0</ptl:netmask>
+          <ptl:delay>0ms</ptl:delay>
+          <ptl:connected-to-link ptl:name="lk"/>
+        </ptl:ethernet-interface>
+      </ptl:interfaces>
+    </ptl:simple>
+    <ptl:plugin ptl:name="pinger" ptl:plugin-identifier="Pinger">
+      <ptl:interfaces>
+        <ptl:ethernet-interface>
+          <ptl:mac-address>00:24:8C:20:FF:02</ptl:mac-address>
+          <ptl:ip-address>192.168.11.1</ptl:ip-address>
+          <ptl:netmask>255.255.255.0</ptl:netmask>
+          <ptl:delay>0ms</ptl:delay>
+          <ptl:connected-to-link ptl:name="lk"/>
+        </ptl:ethernet-interface>
+      </ptl:interfaces>
+      <ptl:tick-interval>100ms</ptl:tick-interval>
+      <ptl:parameters>
+        <ptl:param ptl:name="target-host">
+          <ptl:value>192.168.11.10</ptl:value>
+        </ptl:param>
+        <ptl:param ptl:name="next-hop">
+          <ptl:value>192.168.11.10</ptl:value>
+        </ptl:param>
+        <ptl:param ptl:name="verbose">
+          <ptl:value>true</ptl:value>
+        </ptl:param>
+      </ptl:parameters>
+    </ptl:plugin>
+  </ptl:nodes>
+</ptl:map>

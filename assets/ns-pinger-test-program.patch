@@ -1,0 +1,176 @@
+diff -aur ns-allinone-3.19/build.py ns-allinone-3.19.new/build.py
+--- ns-allinone-3.19/build.py	2013-12-20 21:14:09.000000000 +0330
++++ ns-allinone-3.19.new/build.py	2014-02-06 14:47:39.756070691 +0330
+@@ -1,4 +1,4 @@
+-#! /usr/bin/env python
++#! /usr/bin/env python2
+ import sys
+ from optparse import OptionParser
+ import os
+diff -aur ns-allinone-3.19/ns-3.19/src/applications/model/v4ping.cc ns-allinone-3.19.new/ns-3.19/src/applications/model/v4ping.cc
+--- ns-allinone-3.19/ns-3.19/src/applications/model/v4ping.cc	2013-12-20 21:14:50.000000000 +0330
++++ ns-allinone-3.19.new/ns-3.19/src/applications/model/v4ping.cc	2014-02-06 14:47:31.899404091 +0330
+@@ -44,6 +44,11 @@
+                    Ipv4AddressValue (),
+                    MakeIpv4AddressAccessor (&V4Ping::m_remote),
+                    MakeIpv4AddressChecker ())
++    .AddAttribute ("LocalIp", 
++                   "The address of this machine which reply packets' destination must match with it.",
++                   Ipv4AddressValue (),
++                   MakeIpv4AddressAccessor (&V4Ping::m_localIp),
++                   MakeIpv4AddressChecker ())
+     .AddAttribute ("Verbose",
+                    "Produce usual output.",
+                    BooleanValue (false),
+@@ -117,11 +122,13 @@
+       NS_ASSERT (realFrom.GetPort () == 1); // protocol should be icmp.
+       Ipv4Header ipv4;
+       p->RemoveHeader (ipv4);
++      Ipv4Address me = ipv4.GetDestination ();
+       uint32_t recvSize = p->GetSize ();
+       NS_ASSERT (ipv4.GetProtocol () == 1); // protocol should be icmp.
+       Icmpv4Header icmp;
+       p->RemoveHeader (icmp);
+-      if (icmp.GetType () == Icmpv4Header::ECHO_REPLY)
++      if (me == m_localIp
++          && icmp.GetType () == Icmpv4Header::ECHO_REPLY)
+         {
+           Icmpv4Echo echo;
+           p->RemoveHeader (echo);
+@@ -153,7 +160,9 @@
+ 
+                       if (m_verbose)
+                         {
+-                          std::cout << recvSize << " bytes from " << realFrom.GetIpv4 () << ":"
++                          std::cout << recvSize << " bytes from " << realFrom.GetIpv4 ()
++				    << " by " << me
++				    << ":"
+                                     << " icmp_seq=" << echo.GetSequenceNumber ()
+                                     << " ttl=" << (unsigned)ipv4.GetTtl ()
+                                     << " time=" << delta.GetMilliSeconds () << " ms\n";
+diff -aur ns-allinone-3.19/ns-3.19/src/applications/model/v4ping.h ns-allinone-3.19.new/ns-3.19/src/applications/model/v4ping.h
+--- ns-allinone-3.19/ns-3.19/src/applications/model/v4ping.h	2013-12-20 21:14:50.000000000 +0330
++++ ns-allinone-3.19.new/ns-3.19/src/applications/model/v4ping.h	2014-02-06 14:47:31.902737423 +0330
+@@ -96,6 +96,8 @@
+ 
+   /// Remote address
+   Ipv4Address m_remote;
++  /// Local address
++  Ipv4Address m_localIp;
+   /// Wait  interval  seconds between sending each packet
+   Time m_interval;
+   /** 
+diff -aur ns-allinone-3.19/ns-3.19/src/emu/examples/emu-ping.cc ns-allinone-3.19.new/ns-3.19/src/emu/examples/emu-ping.cc
+--- ns-allinone-3.19/ns-3.19/src/emu/examples/emu-ping.cc	2013-12-20 21:14:50.000000000 +0330
++++ ns-allinone-3.19.new/ns-3.19/src/emu/examples/emu-ping.cc	2014-02-06 14:47:31.902737423 +0330
+@@ -60,6 +60,8 @@
+ #include "ns3/ipv4-static-routing-helper.h"
+ #include "ns3/ipv4-list-routing-helper.h"
+ 
++#include <iostream>
++
+ using namespace ns3;
+ 
+ NS_LOG_COMPONENT_DEFINE ("PingEmulationExample");
+@@ -67,7 +69,7 @@
+ static void 
+ PingRtt (std::string context, Time rtt)
+ {
+-  NS_LOG_UNCOND ("Received Response with RTT = " << rtt);
++  std::cout << "Received Response with RTT = " << rtt << std::endl;
+ }
+ 
+ int 
+@@ -75,21 +77,23 @@
+ {
+   NS_LOG_INFO ("Ping Emulation Example");
+ 
+-  std::string deviceName ("eth0");
+-  std::string remote ("208.77.188.166"); // example.com
+-
++  std::string deviceName ("enp2s0");
++  std::string remote ("4.2.2.4"); // target
++  std::string local ("192.168.42.101"); // sender
++  std::string gatewayipstr ("192.168.42.1");
+   //
+   // Allow the user to override any of the defaults at run-time, via 
+   // command-line arguments
+   //
+   CommandLine cmd;
+   cmd.AddValue ("deviceName", "Device name", deviceName);
+-  cmd.AddValue ("remote", "Remote IP address (dotted decimal only please)", remote);
++  cmd.AddValue ("remote", "Remote IP address", remote);
++  cmd.AddValue ("localip", "Sender IP address", local);
+   cmd.Parse (argc, argv);
+ 
+   Ipv4Address remoteIp (remote.c_str ());
+-  Ipv4Address localIp ("192.168.1.94");
+-  NS_ABORT_MSG_IF (localIp == "1.2.3.4", "You must change the local IP address before running this example");
++  Ipv4Address localIp (local.c_str ());
++//  NS_ABORT_MSG_IF (localIp == "1.2.3.4", "You must change the local IP address before running this example");
+ 
+   Ipv4Mask localMask ("255.255.255.0");
+ 
+@@ -156,7 +160,7 @@
+   ipv4->AddAddress (interface, address);
+   ipv4->SetMetric (interface, 1);
+   ipv4->SetUp (interface);
+-
++  
+   //
+   // When the ping appliation sends its ICMP packet, it will happily send it
+   // down the ns-3 protocol stack.  We set the IP address of the destination
+@@ -170,8 +174,8 @@
+   // the default gateway on your host and add it below, replacing the 
+   // "1.2.3.4" string.
+   //
+-  Ipv4Address gateway ("192.168.1.254");
+-  NS_ABORT_MSG_IF (gateway == "1.2.3.4", "You must change the gateway IP address before running this example");
++  Ipv4Address gateway (gatewayipstr.c_str ());
++ //NS_ABORT_MSG_IF (gateway == "1.2.3.4", "You must change the gateway IP address before running this example");
+ 
+   Ipv4StaticRoutingHelper ipv4RoutingHelper;
+   Ptr<Ipv4StaticRouting> staticRouting = ipv4RoutingHelper.GetStaticRouting (ipv4);
+@@ -184,12 +188,21 @@
+   // helper API with the low level API, let's just use the helper.
+   //
+   NS_LOG_INFO ("Create V4Ping Appliation");
++
++  uint32_t MaxPacketSize = 1024;
++  Time interPacketInterval = Seconds (1.0);
++  uint32_t maxPacketCount = 60;
++  uint32_t stopTime = maxPacketCount * 1.0;
++
+   Ptr<V4Ping> app = CreateObject<V4Ping> ();
+   app->SetAttribute ("Remote", Ipv4AddressValue (remoteIp));
+   node->AddApplication (app);
+   app->SetStartTime (Seconds (1.0));
+-  app->SetStopTime (Seconds (5.0));
++  app->SetStopTime (Seconds (stopTime));
+ 
++  app->SetAttribute ("Size", UintegerValue (MaxPacketSize));
++  app->SetAttribute ("Interval", TimeValue (interPacketInterval));
++  app->SetAttribute ("LocalIp", Ipv4AddressValue (localIp));
+   //
+   // Give the application a name.  This makes life much easier when constructing
+   // config paths.
+@@ -211,8 +224,9 @@
+   // Now, do the actual emulation.
+   //
+   NS_LOG_INFO ("Run Emulation.");
+-  Simulator::Stop (Seconds (5.0));
++  Simulator::Stop (Seconds (stopTime));
+   Simulator::Run ();
+   Simulator::Destroy ();
+   NS_LOG_INFO ("Done.");
+ }
++
+diff -aur ns-allinone-3.19/ns-3.19/waf ns-allinone-3.19.new/ns-3.19/waf
+--- ns-allinone-3.19/ns-3.19/waf	2013-12-20 21:14:50.000000000 +0330
++++ ns-allinone-3.19.new/ns-3.19/waf	2014-02-06 14:47:48.256070621 +0330
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python
++#!/usr/bin/env python2
+ # encoding: ISO8859-1
+ # Thomas Nagy, 2005-2012
+ 
