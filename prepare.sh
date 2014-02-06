@@ -37,6 +37,12 @@ if [ ! -d cf.git/ ]; then
 fi
 
 echo
+echo "Preparing Map Generator ...."
+cd gen-simulation-map/
+make
+cd ../
+
+echo
 echo "Preparing Partov ...."
 if [ ! -d partovnse.git/ ]; then
 	tar xzf partovnse-v3.1.0.tar.gz
